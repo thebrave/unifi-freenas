@@ -1,10 +1,10 @@
 #!/bin/sh
 
 # install-unifi.sh
-# Installs the Uni-Fi controller software on a FreeBSD machine (presumably running pfSense).
+# Installs the Uni-Fi controller software on a FreeBSD machine (presumably running FreeNAS).
 
 # The latest version of UniFi:
-UNIFI_SOFTWARE_URL="https://dl.ubnt.com/unifi/4.8.14/UniFi.unix.zip"
+UNIFI_SOFTWARE_URL="https://dl.ubnt.com/unifi/4.8.15/UniFi.unix.zip"
 
 # The rc script associated with this branch or fork:
 RC_SCRIPT_URL="https://raw.githubusercontent.com/gozoinks/unifi-pfsense/master/rc.d/unifi.sh"
@@ -72,7 +72,7 @@ echo " done."
 # Install mongodb, OpenJDK, and unzip (required to unpack Ubiquiti's download):
 # -F skips a package if it's already installed, without throwing an error.
 echo "Installing required packages..."
-env ASSUME_ALWAYS_YES=YES /usr/sbin/pkg install mongodb openjdk unzip pcre v8 snappy
+env ASSUME_ALWAYS_YES=YES /usr/sbin/pkg install mongodb openjdk unzip pcre v8 snappyjava
 echo " done."
 
 # Switch to a temp directory for the Unifi download:
@@ -99,11 +99,14 @@ echo -n "Installing rc script..."
 /usr/bin/fetch -o /usr/local/etc/rc.d/unifi.sh ${RC_SCRIPT_URL}
 echo " done."
 
+# Fix autoprovision loop
+cp /usr/local/share/java/classes/snappy-java.jar /usr/local/UniFi/lib/snappy-java-1.0.5.jar
+
 # Fix permissions so it'll run
 chmod +x /usr/local/etc/rc.d/unifi.sh
 
 # Add the startup variable to rc.conf.local.
-# Eventually, this step will need to be folded into pfSense, which manages the main rc.conf.
+# Eventually, this step will need to be folded into FreeNAS, which manages the main rc.conf.
 # In the following comparison, we expect the 'or' operator to short-circuit, to make sure the file exists and avoid grep throwing an error.
 if [ ! -f /etc/rc.conf.local ] || [ $(grep -c unifi_enable /etc/rc.conf.local) -eq 0 ]; then
   echo -n "Enabling the unifi service..."
@@ -120,5 +123,5 @@ fi
 
 # Start it up:
 echo -n "Starting the unifi service..."
-/usr/sbin/service unifi.sh start
+/usr/sbin/service unifi start
 echo " done."
